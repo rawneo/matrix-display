@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MATRIX DISPLAY</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  </head>
+  <body>
+    <div class="container text-center">
+      <div class="row my-4">
+        <h1>MATRIX DISPLAY</h1>
+      </div>
+      <div class="row my-3">
+        <div class="col-12 d-flex justify-content-center">
+          <div style="background:#0b0b0b; border:1px solid #333; border-radius:10px; padding:10px 12px; max-width:100%;">
+            <canvas id="panel" width="448" height="64" style="display:block; width:100%; max-width:560px; height:auto; image-rendering:pixelated;"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="row g-2 my-4">
+        <div class="col-12">
+          <div class="d-flex gap-2 flex-wrap flex-sm-nowrap">
+            <form action="/ledtext" method="post" class="d-flex gap-2 flex-grow-1 m-0">
+                <input type="text" class="form-control flex-grow-1" name="ledtext" placeholder="Enter Text">
+                <input type="submit" name="start" value="Send" class="btn btn-primary flex-shrink-0" onClick="this.form.submit(); this.disabled=true; this.value='Sending…'; "/>
+            </form>
+            <form action="/stopledtext" method="post" class="m-0 flex-shrink-0">
+                <input type="submit" name="form" value="Stop" class="btn btn-danger"/>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="row g-3 my-4 justify-content-center">
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/startclock" method="post">
+                <input type="submit" name="form" value="Clock" class="btn btn-success w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/weather" method="post">
+                <input type="submit" name="form" value="Weather" class="btn btn-info w-100" onClick="this.form.submit(); this.disabled=true; this.value='Loading…';"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/dht" method="post">
+                <input type="submit" name="form" value="Room Temp" class="btn btn-secondary w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/charset" method="post">
+                <input type="submit" name="form" value="Charset" class="btn btn-warning w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/pacman" method="post">
+                <input type="submit" name="form" value="Pacman" class="btn btn-primary w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/dancer" method="post">
+                <input type="submit" name="form" value="The Dancer" class="btn btn-primary w-100"/>
+            </form>
+        </div>
+      </div>
+      <div class="row g-3 my-4 justify-content-center">
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/kitt" method="post">
+                <input type="submit" name="form" value="KITT" class="btn btn-danger w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/equalizer" method="post">
+                <input type="submit" name="form" value="Equalizer" class="btn btn-success w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/rain" method="post">
+                <input type="submit" name="form" value="Rain" class="btn btn-info w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/fireworks" method="post">
+                <input type="submit" name="form" value="Fireworks" class="btn btn-warning w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/starfield" method="post">
+                <input type="submit" name="form" value="Starfield" class="btn btn-secondary w-100"/>
+            </form>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+            <form action="/ecg" method="post">
+                <input type="submit" name="form" value="ECG ❤" class="btn btn-danger w-100"/>
+            </form>
+        </div>
+      </div>
+    </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+      (function () {
+        var cv = document.getElementById('panel');
+        if (!cv) return;
+        var ctx = cv.getContext('2d');
+        function draw(w, h, bits) {
+          var cell = cv.width / w, r = cell * 0.42;
+          ctx.fillStyle = '#0b0b0b';
+          ctx.fillRect(0, 0, cv.width, cv.height);
+          for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+              var on = bits.charAt(y * w + x) === '1';
+              ctx.beginPath();
+              ctx.arc(x * cell + cell / 2, y * cell + cell / 2, r, 0, 6.2832);
+              if (on) { ctx.fillStyle = '#ff3b30'; ctx.shadowColor = '#ff3b30'; ctx.shadowBlur = cell * 0.5; }
+              else { ctx.fillStyle = '#241010'; ctx.shadowBlur = 0; }
+              ctx.fill();
+            }
+          }
+          ctx.shadowBlur = 0;
+        }
+        function tick() {
+          fetch('/frame', { cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.text() : null; })
+            .then(function (t) {
+              if (!t) return;
+              var i = t.indexOf(' '), j = t.indexOf(' ', i + 1);
+              var w = parseInt(t.slice(0, i), 10), h = parseInt(t.slice(i + 1, j), 10);
+              var bits = t.slice(j + 1);
+              if (w > 0 && h > 0 && bits.length >= w * h) draw(w, h, bits);
+            })
+            .catch(function () {});
+        }
+        setInterval(tick, 150);
+        tick();
+      })();
+    </script>
+  </body>
+</html>
