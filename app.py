@@ -18,7 +18,8 @@ from flask import Flask, render_template, request, redirect
 
 import framebuf
 
-app = Flask(__name__)
+# index.html lives next to app.py instead of a templates/ subfolder
+app = Flask(__name__, template_folder=".")
 
 # The MAX7219 is a single shared resource. Serialize access so two
 # concurrent requests can't interleave SPI writes and corrupt the display.

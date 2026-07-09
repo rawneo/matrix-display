@@ -133,8 +133,7 @@ on a canvas — what you see in the browser is exactly what the LEDs show.
 ```
 app.py               Flask app: device setup, workers (clock/weather/animations), routes
 framebuf.py          framebuffer publisher for the web replica
-templates/
-  index.html         web UI (Bootstrap 5 + canvas replica)
+index.html           web UI (Bootstrap 5 + canvas replica)
 matrix.png           the real thing
 ```
 
