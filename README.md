@@ -49,7 +49,7 @@ The web page also shows a **live replica** of the physical panel, rendered on a
 # enable SPI
 sudo raspi-config nonint do_spi 0
 
-git clone https://github.com/<you>/matrix-display.git
+git clone https://github.com/rawneo/matrix-display.git
 cd matrix-display
 python3 -m venv venv
 venv/bin/pip install flask luma.led_matrix adafruit-circuitpython-dht
