@@ -1,0 +1,35 @@
+// Copy this file to config.h and fill in your values.
+#pragma once
+
+#define WIFI_SSID     "your-ssid"
+#define WIFI_PASS     "your-password"
+#define HOSTNAME      "matrix-display"
+
+// Static IP (comment these four lines out to use DHCP instead).
+#define STATIC_IP     192, 168, 2, 101
+#define STATIC_GW     192, 168, 2, 1
+#define STATIC_MASK   255, 255, 255, 0
+#define STATIC_DNS    192, 168, 2, 1
+
+// Weather location (Open-Meteo). Same pinning as the Pi version.
+#define WEATHER_LAT   "30.3165"
+#define WEATHER_LON   "78.0322"
+#define WEATHER_CITY  "Dehradun"
+
+// POSIX TZ string. IST = UTC+5:30.
+#define TZ_INFO       "IST-5:30"
+
+// Panel: 7 cascaded FC-16 MAX7219 modules, DIN=D7, CLK=D5, CS=D8 (HW SPI).
+#define MAX_DEVICES   7
+
+// Default brightness 0..15 (the Pi version ran the equivalent of ~1).
+#define DEFAULT_INTENSITY 1
+
+// If your animations run mirrored left<->right, flip this.
+#define FLIP_X        1
+
+// Set to 1 if the panel is physically mounted upside down.
+#define ROTATE_180    0
+
+// DHT11 data pin (D2 on NodeMCU = GPIO4, same pin number as the Pi build).
+#define DHT_PIN       4

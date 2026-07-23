@@ -170,6 +170,15 @@ def read_dht():
         return None
 
 
+@app.route("/api/dht")
+def api_dht():
+    """JSON endpoint for Home Assistant: current DHT11 reading."""
+    r = read_dht()
+    if r is None:
+        return {"error": "read failed"}, 503
+    return {"temperature": r[0], "humidity": r[1]}
+
+
 def _run_ledtext(msg, stop_event):
     """Scroll msg across the panel over and over until stop_event is set.
     The stop takes effect at the end of the current scroll pass."""

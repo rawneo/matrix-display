@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 *.bak-*
 .DS_Store
+*.bak
+esp8266/.pio/
+esp8266/include/config.h
+._*

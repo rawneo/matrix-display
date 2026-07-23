@@ -10,6 +10,11 @@ animations) on a single background thread — one process, no fighting over SPI.
 The web page also shows a **live replica** of the physical panel, rendered on a
 `<canvas>` from the real framebuffer.
 
+
+> **Now also on ESP8266** — the display has been ported to a NodeMCU ESP8266 so
+> the Pi is free for other duties. Same web UI, clock face and animations, one
+> C++ firmware, OTA updates. See [esp8266/](esp8266/).
+
 ## Features
 
 - **Clock** (default) — `HH:MM` with blinking colon and date, slide animation on
@@ -120,6 +125,7 @@ Every button is a plain POST route, so you can drive the panel with `curl`:
 | `POST /pacman` `/dancer` `/kitt` `/equalizer` `/rain` `/fireworks` `/starfield` `/ecg` | animations |
 | `GET /frame` | current framebuffer as `W H <bits>` (drives the web replica) |
 | `GET /health` | liveness check |
+| `GET /api/dht` | DHT11 reading as JSON (for Home Assistant) |
 
 ## How the live replica works
 
