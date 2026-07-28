@@ -683,6 +683,7 @@ void setup() {
   dht.setup(DHT_PIN, DHTesp::DHT11);
 
   WiFi.mode(WIFI_STA);
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
   WiFi.hostname(HOSTNAME);
 #ifdef STATIC_IP
   {
