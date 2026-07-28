@@ -241,6 +241,7 @@ uint8_t dateCols[200];
 int dateNCols = 0, dateScroll = 0, lastDay = -1;
 #define DATE_GAP 10   // blank cols between scroll repeats
 #define TIME_REGION 24   // modules 1-3 (brighter vendor): time; 4-7: date scroller
+#define TIME_GAP 1    // blank separator col so the scroller doesn't touch the time
 
 // LCD_FONT digits from the original Pi build (luma.core legacy LCD_FONT,
 // proportional-trimmed; bit0 = top row). Layout mirrors the Pi's clock face:
@@ -326,7 +327,7 @@ void tickClock() {
   frameBegin();
   drawTimeLCD(tbuf);                     // original Pi clock face, modules 1-3
   if (synced && dateNCols > 0) {
-    int x0 = TIME_REGION;                                     // modules 4-7
+    int x0 = TIME_REGION + TIME_GAP;                          // modules 4-7
     int cycle = dateNCols + DATE_GAP;
     for (int i = 0; x0 + i < PANEL_W; i++) {
       int ci = (dateScroll + i) % cycle;
