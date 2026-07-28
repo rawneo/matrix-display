@@ -262,6 +262,23 @@ const uint8_t LCD_W[11] = {5, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5};
 
 static int glyphIdx(char c) { return (c == '-') ? 10 : c - '0'; }
 
+// Full LCD_FONT (space..'z') ported from the same luma.core.legacy.font
+// table the digits above came from, so the day/date scroller can share the
+// exact clock typeface instead of the MD_MAX72XX library's default font.
+#include "lcd_font_table.h"
+
+int buildColsLCD(const char *s, uint8_t *cols, int maxCols) {
+  int n = 0;
+  for (const char *p = s; *p && n < maxCols - 6; p++) {
+    uint8_t c = (uint8_t)*p;
+    int idx = (c >= LCD_FONT_LO && c <= LCD_FONT_HI) ? c - LCD_FONT_LO : 0;
+    uint8_t w = pgm_read_byte(&LCD_FONT_W[idx]);
+    for (uint8_t i = 0; i < w; i++) cols[n++] = pgm_read_byte(&LCD_FONT_TABLE[idx][i]);
+    cols[n++] = 0;
+  }
+  return n;
+}
+
 int drawTimeGlyph(int x, char c) {
   int idx = glyphIdx(c);
   for (int i = 0; i < LCD_W[idx]; i++)
@@ -297,7 +314,7 @@ void tickClock() {
       lastDay = t.tm_mday;
       char dbuf[40];
       strftime(dbuf, sizeof(dbuf), "%A %B %d", &t);
-      dateNCols = buildCols(dbuf, dateCols, sizeof(dateCols));
+      dateNCols = buildColsLCD(dbuf, dateCols, sizeof(dateCols));
       dateScroll = 0;
     }
   } else {
