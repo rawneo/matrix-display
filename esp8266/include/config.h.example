@@ -29,7 +29,11 @@
 #define FLIP_X        1
 
 // Set to 1 if the panel is physically mounted upside down.
-#define ROTATE_180    0
+// The deployed unit (.101) IS mounted upside-down, so this must stay 1 —
+// config.h is gitignored and gets recreated from this file on every
+// rebuild, so a wrong default here silently flips the display (happened
+// 2026-07-28).
+#define ROTATE_180    1
 
 // DHT11 data pin (D2 on NodeMCU = GPIO4, same pin number as the Pi build).
 #define DHT_PIN       4
