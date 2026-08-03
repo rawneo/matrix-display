@@ -15,6 +15,7 @@
 #include <MD_MAX72xx.h>
 #include <ArduinoJson.h>
 #include <DHTesp.h>
+#include <PubSubClient.h>
 #include "config.h"
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
@@ -25,6 +26,8 @@ MD_Parola parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 MD_MAX72XX *mx;
 ESP8266WebServer server(80);
 DHTesp dht;
+WiFiClient mqttNet;
+PubSubClient mqtt(mqttNet);
 
 // ---------------------------------------------------------------- modes ----
 enum Mode {
@@ -685,6 +688,65 @@ void setupRoutes() {
 }
 
 // ---------------------------------------------------------------- setup ----
+// ------------------------------------------------------------------ mqtt ----
+// Publishes the DHT reading straight to Home Assistant, replacing the HTTP
+// poller that used to scrape /dhtraw from another host. Non-blocking: it
+// reconnects at most every 10s and publishes on MQTT_INTERVAL, matching the
+// millis() cooperative-scheduler pattern the animation ticks already use.
+//
+// The two discovery payloads below must stay BYTE-IDENTICAL to what is
+// retained on the broker. This HA version ignores "object_id" and derives
+// entity_id from slugify(name) — prefixed by the device name when a "device"
+// block is present — so there is deliberately NO device block here, and the
+// names are the exact slug sources for sensor.esp8266_temperature /
+// sensor.esp8266_humidity. Changing either silently breaks dashboards.
+#define MQTT_DISC_TEMP "homeassistant/sensor/esp8266_temperature/config"
+#define MQTT_DISC_HUM  "homeassistant/sensor/esp8266_humidity/config"
+
+static const char DISC_TEMP[] =
+  "{\"name\":\"Esp8266 Temperature\",\"state_topic\":\"esp8266/dht/temperature\","
+  "\"unit_of_measurement\":\"\xC2\xB0" "C\",\"device_class\":\"temperature\","
+  "\"state_class\":\"measurement\",\"unique_id\":\"esp8266_dht_temperature_final\","
+  "\"expire_after\":300}";
+
+static const char DISC_HUM[] =
+  "{\"name\":\"Esp8266 Humidity\",\"state_topic\":\"esp8266/dht/humidity\","
+  "\"unit_of_measurement\":\"%\",\"device_class\":\"humidity\","
+  "\"state_class\":\"measurement\",\"unique_id\":\"esp8266_dht_humidity_final\","
+  "\"expire_after\":300}";
+
+uint32_t mqttLastPub = 0, mqttLastTry = 0;
+bool     mqttPubPending = true;   // publish state immediately after connecting
+
+void mqttTick() {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  if (!mqtt.connected()) {
+    if (mqttLastTry && millis() - mqttLastTry < 10000) return;  // backoff
+    mqttLastTry = millis();
+    if (!mqtt.connect(MQTT_CLIENTID, MQTT_USER, MQTT_PASS)) return;
+    // retained, so HA rebuilds the entities even on a fresh broker
+    mqtt.publish(MQTT_DISC_TEMP, DISC_TEMP, true);
+    mqtt.publish(MQTT_DISC_HUM,  DISC_HUM,  true);
+    mqttPubPending = true;
+  }
+
+  mqtt.loop();
+
+  if (!mqttPubPending && millis() - mqttLastPub < MQTT_INTERVAL) return;
+  mqttLastPub = millis();
+  mqttPubPending = false;
+
+  TempAndHumidity th = dht.getTempAndHumidity();
+  if (dht.getStatus() != DHTesp::ERROR_NONE || isnan(th.temperature)) return;
+
+  char b[16];
+  snprintf(b, sizeof(b), "%.1f", th.temperature);
+  mqtt.publish(MQTT_TOPIC_TEMP, b, true);
+  snprintf(b, sizeof(b), "%.1f", th.humidity);
+  mqtt.publish(MQTT_TOPIC_HUM, b, true);
+}
+
 void setup() {
   Serial.begin(115200);
   randomSeed(ESP.getCycleCount());
@@ -718,6 +780,9 @@ void setup() {
   ArduinoOTA.setHostname(HOSTNAME);
   ArduinoOTA.begin();
 
+  mqtt.setServer(MQTT_HOST, MQTT_PORT);
+  mqtt.setBufferSize(512);   // discovery payloads exceed the 256-byte default
+
   setupRoutes();
   server.begin();
 
@@ -728,6 +793,7 @@ void setup() {
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();
+  mqttTick();
   switch (mode) {
     case M_CLOCK:     tickClock();     break;
     case M_TEXT:

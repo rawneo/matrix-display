@@ -37,3 +37,23 @@
 
 // DHT11 data pin (D2 on NodeMCU = GPIO4, same pin number as the Pi build).
 #define DHT_PIN       4
+
+// ---- MQTT (Home Assistant broker) ----------------------------------------
+// Publishes the DHT reading straight to HA, replacing the HTTP poller that
+// used to run on jetson2 and then rpi5. Discovery configs are re-published
+// on every (re)connect so the entities self-heal on a fresh broker.
+// NOTE: PubSubClient's default MQTT_MAX_PACKET_SIZE is 256, which silently
+// truncates the discovery payloads — platformio.ini raises it to 512.
+#define MQTT_HOST     "192.168.2.20"
+#define MQTT_PORT     1883
+#define MQTT_USER     "mqtt"
+#define MQTT_PASS     "your-mqtt-password"
+#define MQTT_CLIENTID "esp8266-clock"
+
+// Publish interval in ms.
+#define MQTT_INTERVAL 60000
+
+// Topics. These must match the retained HA discovery configs, or the
+// entity_ids change and dashboards/automations silently break.
+#define MQTT_TOPIC_TEMP "esp8266/dht/temperature"
+#define MQTT_TOPIC_HUM  "esp8266/dht/humidity"
