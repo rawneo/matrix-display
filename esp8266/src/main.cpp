@@ -15,8 +15,10 @@
 #include <MD_MAX72xx.h>
 #include <ArduinoJson.h>
 #include <DHTesp.h>
-#include <PubSubClient.h>
 #include "config.h"
+#if ENABLE_MQTT
+#include <PubSubClient.h>
+#endif
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define CS_PIN 15  // D8
@@ -26,8 +28,10 @@ MD_Parola parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 MD_MAX72XX *mx;
 ESP8266WebServer server(80);
 DHTesp dht;
+#if ENABLE_MQTT
 WiFiClient mqttNet;
 PubSubClient mqtt(mqttNet);
+#endif
 
 // ---------------------------------------------------------------- modes ----
 enum Mode {
@@ -107,6 +111,38 @@ void blit(const uint8_t *sprite /*PROGMEM*/, int x0, int y0 = 0) {
 
 void frameBegin() { mx->clear(); }
 void frameEnd()   { mx->update(); }
+
+// ------------------------------------------------------ panel keep-alive ----
+// The MAX7219s are initialised exactly ONCE, by parola.begin() in setup().
+// They power up in shutdown mode, so if a chip ever loses its control
+// registers -- a brownout, ESD, or just a slow/noisy 5V ramp when the unit is
+// replugged -- it goes dark and STAYS dark. The chain is write-only, so
+// nothing detects it and the firmware keeps happily shifting pixel data into
+// a switched-off display.
+//
+// That is exactly what happened 2026-08-12: after a replug, 6 of 7 modules
+// were dark while the frame buffer, the date scroller and the web server were
+// all provably healthy (buffer updating every frame, 0 stalls, 18ms median).
+// Only one module had caught the boot-time init. A reboot fixed it.
+//
+// Note setIntensity() is ALREADY re-sent every frame from tickClock(), which
+// is why the panel can look "addressed" and still be blank -- INTENSITY is not
+// the register that matters here, SHUTDOWN is.
+//
+// Re-asserting the control registers periodically makes the panel self-heal in
+// seconds instead of needing a power cycle. The writes are no-ops when the
+// chips are already configured. Intensity is deliberately NOT touched, so the
+// 21:00-06:00 night dim and the animation fades keep control of it.
+#define PANEL_REINIT_MS 5000
+uint32_t lastPanelInit = 0;
+
+void panelKeepAlive() {
+  if (millis() - lastPanelInit < PANEL_REINIT_MS) return;
+  lastPanelInit = millis();
+  mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::SHUTDOWN, MD_MAX72XX::OFF);
+  mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::SCANLIMIT, MAX_SCANLIMIT);
+  mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::DECODE, MD_MAX72XX::OFF);
+}
 
 // ------------------------------------------------------------- weather ----
 const char *wmoText(int code) {
@@ -687,8 +723,17 @@ void setupRoutes() {
   server.onNotFound([]() { server.send(404, "text/plain", "Not Found"); });
 }
 
-// ---------------------------------------------------------------- setup ----
 // ------------------------------------------------------------------ mqtt ----
+// DISABLED 2026-08-12 (ENABLE_MQTT 0). The broker was the HAOS Mosquitto
+// add-on on 192.168.2.20, which is powered off with the rack. PubSubClient
+// connect() is NOT non-blocking as the note below claimed: it runs a TCP
+// connect with WiFiClient's default 5000ms timeout, so against a dead host
+// it stalled loop() for 5s out of every 10s retry cycle -- freezing the
+// clock face and the date scroller, and stalling the web server with it.
+// This was publish-only telemetry (no subscribes), so nothing about the
+// display depended on it. /dhtraw still serves the live sensor reading.
+// Set ENABLE_MQTT 1 in config.h to restore.
+#if ENABLE_MQTT
 // Publishes the DHT reading straight to Home Assistant, replacing the HTTP
 // poller that used to scrape /dhtraw from another host. Non-blocking: it
 // reconnects at most every 10s and publishes on MQTT_INTERVAL, matching the
@@ -746,6 +791,9 @@ void mqttTick() {
   snprintf(b, sizeof(b), "%.1f", th.humidity);
   mqtt.publish(MQTT_TOPIC_HUM, b, true);
 }
+#endif  // ENABLE_MQTT
+
+// ---------------------------------------------------------------- setup ----
 
 void setup() {
   Serial.begin(115200);
@@ -780,8 +828,10 @@ void setup() {
   ArduinoOTA.setHostname(HOSTNAME);
   ArduinoOTA.begin();
 
+#if ENABLE_MQTT
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setBufferSize(512);   // discovery payloads exceed the 256-byte default
+#endif
 
   setupRoutes();
   server.begin();
@@ -793,7 +843,10 @@ void setup() {
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();
+  panelKeepAlive();
+#if ENABLE_MQTT
   mqttTick();
+#endif
   switch (mode) {
     case M_CLOCK:     tickClock();     break;
     case M_TEXT:

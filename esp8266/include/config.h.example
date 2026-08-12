@@ -39,6 +39,13 @@
 #define DHT_PIN       4
 
 // ---- MQTT (Home Assistant broker) ----------------------------------------
+// DISABLED 2026-08-12. Set to 1 to restore; everything below is compiled
+// out while it is 0. The broker (HAOS Mosquitto on .20) is powered off
+// with the rack, and PubSubClient's blocking 5s TCP connect was freezing
+// the display for 5s out of every 10s. This feed was publish-only --
+// /dhtraw still serves the same DHT reading over HTTP either way.
+#define ENABLE_MQTT 0
+
 // Publishes the DHT reading straight to HA, replacing the HTTP poller that
 // used to run on jetson2 and then rpi5. Discovery configs are re-published
 // on every (re)connect so the entities self-heal on a fresh broker.
