@@ -129,6 +129,15 @@ void frameEnd()   { mx->update(); }
 // is why the panel can look "addressed" and still be blank -- INTENSITY is not
 // the register that matters here, SHUTDOWN is.
 //
+// SECOND failure mode, seen 2026-08-12 a few hours later: one module lit up
+// with ALL 64 LEDs at full brightness while the other six went dark. That is
+// DISPLAY TEST mode (MD_MAX72XX::TEST -> OP_DISPLAYTEST, register 0x0F), which
+// overrides intensity and scan limit. It is also self-sustaining: a module at
+// full brightness draws far more than the clock face ever does, sagging the
+// shared 5V rail enough to knock the other chips out. TEST is therefore part
+// of the keep-alive set -- the first version of this function asserted
+// SHUTDOWN/SCANLIMIT/DECODE only, and could not clear a chip stuck in test.
+//
 // Re-asserting the control registers periodically makes the panel self-heal in
 // seconds instead of needing a power cycle. The writes are no-ops when the
 // chips are already configured. Intensity is deliberately NOT touched, so the
@@ -140,6 +149,7 @@ void panelKeepAlive() {
   if (millis() - lastPanelInit < PANEL_REINIT_MS) return;
   lastPanelInit = millis();
   mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::SHUTDOWN, MD_MAX72XX::OFF);
+  mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::TEST, MD_MAX72XX::OFF);
   mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::SCANLIMIT, MAX_SCANLIMIT);
   mx->control(0, MAX_DEVICES - 1, MD_MAX72XX::DECODE, MD_MAX72XX::OFF);
 }
@@ -611,6 +621,9 @@ const char PAGE[] PROGMEM = R"HTML(<!doctype html>
       </form>
       <form action="/stopledtext" method="post" class="m-0 flex-shrink-0">
         <input type="submit" value="Stop" class="btn btn-danger">
+      </form>
+      <form action="/reboot" method="post" class="m-0 flex-shrink-0" onsubmit="return confirm('Reboot the clock?')">
+        <input type="submit" value="Reboot" class="btn btn-warning">
       </form>
     </div>
   </div></div>
